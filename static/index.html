@@ -1,0 +1,118 @@
+<!doctype html>
+
+<html>
+
+<head>
+	<title>JSON Editor</title>
+	<style>
+		main {
+			max-width: 960px;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		textarea {
+			width: 100%;
+			height: 20em;
+		}
+
+		#inputs div {
+			background: rgba(0, 0, 0, 0.1);
+			padding: 10px;
+		}
+	</style>
+</head>
+
+<body>
+	<main>
+		<div id="inputs"></div>
+
+		<textarea></textarea>
+
+		<input type="button" value="post">
+		<input type="button" value="get">
+	</main>
+
+	<script src="mu.js"></script>
+	<script>
+		(function() {
+			var config;
+
+			// race condition free?
+			function ajax(url, method, data, success, error) {
+				var x = new XMLHttpRequest();
+
+				x.onreadystatechange = function() {
+					if (x.readyState === 4) {
+						if (x.status == 200 && success) {
+							success(x.responseText);
+						} else if (error) {
+							error();
+						}
+					}
+				}
+
+				x.open(method, url, true);
+				x.send(data);
+			}
+
+			function testSetup() {
+				ajax("config", "POST", JSON.stringify({
+					abc: "whatsup",
+					def: 128,
+					ghi: 3.1415,
+					stu: true,
+					jkl: false,
+					pqr: ["one", 2, 3.0, "four", false],
+					mno: {
+						value1: "yiiiiih",
+						value2: 256,
+						value3: true
+					}
+				}), get);
+			}
+
+			function input(name, obj, arrayElement) {
+				var div = µ.div();
+
+				if (typeof obj === "object") {
+					div.add(µ.input("text", null, name));
+
+					for (key in obj) {
+						if (obj.hasOwnProperty(key)) {
+							div.add(input(key, obj[key], Object.prototype.toString.call(obj) === "[object Array]"));
+						}
+					}
+				} else {
+					div.add(arrayElement ? µ.span(name) : µ.input("text", null, name), µ.input("text", name, obj));
+				}
+
+				return div;
+			}
+
+			function get() {
+				ajax("config", "GET", "", function(r) {
+					config = JSON.parse(r);
+
+					µ.one("textarea").value = r;
+
+					µ.one("#inputs").empty().add(input("config", config));
+				});
+			}
+
+			function post() {
+				ajax("config", "POST", µ.one("textarea").value);
+			}
+
+			window.on("load", function() {
+				µ.one("input[value='get']").on("click", get);
+				µ.one("input[value='post']").on("click", post);
+
+				testSetup();
+				// get();
+			});
+		})();
+	</script>
+</body>
+
+</html>
